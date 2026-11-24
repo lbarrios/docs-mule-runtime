@@ -929,6 +929,31 @@ The most common cause of export errors, delays, or drops is a bottleneck in the 
 
 Be aware that tuning changes, such as modifying the queue size, can impact Mule application performance. Test these changes carefully before applying them to production.
 
+[[troubleshooting-third-party-observability-platforms]]
+== Troubleshooting Third-Party Observability Platforms
+
+=== Dynatrace
+
+* *A trace appears without a named endpoint.* In Dynatrace environments with configurable endpoint detection in Service Detection v2, a custom rule can classify an `INTERNAL` trace root, such as the flow span from a xref:scheduler-concept.adoc[Scheduler] trigger. See https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v2/endpoint-detection-v2[Customize endpoint detection in Service Detection v2].
++
+This example selects two flow locations in one service. Use the `service.name`, span names, and `location` values you see on your root spans. The wildcard covers span names with a suffix.
++
+[source,text]
+----
+span.kind == "internal"
+AND (span.name == "mule:flow" OR matchesValue(span.name, "mule:flow - *"))
+AND service.name == "example-mule-app"
+AND (location == "scheduler-alpha" OR location == "scheduler-beta")
+----
++
+Select *Detect request on endpoint* and set the endpoint name template to `\{location}`. Put the rule before overlapping rules because Dynatrace applies the first match. Check new traces from both flows for distinct endpoint names and check a root outside the rule's scope. Other `INTERNAL` roots with the same attributes can also match. Missing locations are excluded, and duplicate locations produce the same endpoint name.
+
+* *A trace or parent span is missing.* Check whether the span reached your ingestion pipeline. Endpoint detection classifies spans already present in Dynatrace. See https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting[Dynatrace OpenTelemetry troubleshooting].
+
+* *A log doesn't link to its trace.* Verify that the log's trace ID and span ID match the ingested trace and span. For OpenTelemetry logs, see how Dynatrace https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs#attributes[maps OTLP log fields]. If you collect Log4j output and use enriched fields such as `dt.trace_id` and `dt.span_id`, see https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-enrichment#enrich-logs-manually[Dynatrace log enrichment].
+
+_Dynatrace references last checked November 24, 2026._
+
 == See Also
 
 * xref:mule-troubleshooting-plugin.adoc[]
